@@ -1,5 +1,5 @@
 import { BarChart3, Clapperboard, Code2, FileText, FileUser, GitBranch, Globe, ImageIcon, Languages, MessageSquare, Mic, MicOff, Paperclip, Presentation, Send, Terminal, X, Zap } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import sendMessage from '../features/sendMessage'
 import { useDispatch, useSelector } from 'react-redux'
 import { addMessage, setArtifacts, setIsLoading, setMessages } from '../redux/messageSlice'
@@ -13,7 +13,7 @@ function ChatInput() {
   const [value, setValue] = useState("")
   const [selectedAgent, setSelectedAgent] = useState("Auto")
   const { selectedConversation } = useSelector(state => state.conversation)
-  const { messages, isLoading } = useSelector(state => state.message)
+  const { isLoading } = useSelector(state => state.message)
   const [selectedFile, setSelectedFile] = useState(null)
   const [listening, setListening] = useState(false)
   const recognitionRef = useRef(null)
@@ -102,8 +102,12 @@ function ChatInput() {
     const data = await sendMessage(formData)
     dispatch(setIsLoading(false))
     setSelectedFile(null)
+    if (!data) {
+      dispatch(addMessage({ role: "assistant", content: "Sorry, something went wrong. Please try again." }))
+      return
+    }
     dispatch(setArtifacts(data.artifacts || []))
-    dispatch(addMessage({ role: "assistant", content: data?.answer, images: data?.images }))
+    dispatch(addMessage({ role: "assistant", content: data?.answer, images: data?.images, diagram: data?.diagram, dataHtml: data?.dataHtml }))
     console.log(data)
   }
 

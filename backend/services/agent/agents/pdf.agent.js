@@ -4,6 +4,22 @@ import { getFromS3 } from "../utils/getFromS3.js"
 import { uploadToS3 } from "../utils/uploadToS3.js"
 import { deductCredits } from "../utils/deductCredits.js"
 import { checkAgentLimit } from "../config/agentLimit.js"
+
+const parseJson = (raw) => {
+    let text = String(raw).trim()
+    text = text.replace(/^```(?:json)?\s*/, "").replace(/```$/, "").trim()
+
+    const firstBrace = text.indexOf("{")
+    const lastBrace = text.lastIndexOf("}")
+    if (firstBrace < 0 || lastBrace <= firstBrace) return null
+
+    try {
+        return JSON.parse(text.slice(firstBrace, lastBrace + 1))
+    } catch {
+        return null
+    }
+}
+
 export const pdfAgent=async (state) => {
     try {
         const rate=await checkAgentLimit(state.userId,"pdf")
@@ -13,28 +29,27 @@ export const pdfAgent=async (state) => {
         const prompt=`
         You are an expert document writer.
 
-Return ONLY valid JSON.
+Generate a well-structured PDF document on the given topic.
 
-Do NOT return markdown.
-
-Do NOT return explanations.
-
-Structure:
+Return ONLY valid JSON with this exact shape (no markdown fences, no explanation, nothing before or after):
 
 {
-"title":"",
-"subtitle":"",
-"sections":[
-{
-"heading":"",
-"points":[]
-}
-]
+  "title": "document title",
+  "subtitle": "short subtitle",
+  "sections": [
+    {
+      "heading": "section heading",
+      "points": ["concise point 1", "concise point 2"]
+    }
+  ]
 }
 
-Generate 4-8 sections.
-
-Each section should have 3-6 concise bullet points.
+Rules:
+- Generate 4-8 sections.
+- Each section should have 3-6 concise, informative bullet points.
+- Include an "Introduction" section and a "Conclusion" section.
+- Use only facts, no placeholders.
+- Output ONLY the JSON object.
 
 Topic:
 
@@ -42,8 +57,15 @@ ${state.prompt}
         `
 
         const res=await llm.invoke(prompt)
-        const data=JSON.parse(res.content)
+        const data=parseJson(res.content)
        await deductCredits(state.userId,"pdf")
+
+       if (!data || !data.title || !Array.isArray(data.sections)) {
+           return {
+               ...state,
+               aiResponse:"I couldn't generate the document. Please try again with a clearer topic."
+           }
+       }
         
         const pdfBuffer=await generatePdf(data)
 

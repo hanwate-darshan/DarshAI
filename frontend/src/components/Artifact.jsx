@@ -1,8 +1,9 @@
 import { Check, Code2, Copy, Eye, PanelRightClose, PanelRightOpen, X } from 'lucide-react'
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import { AnimatePresence, easeInOut, motion } from "motion/react"
 import Editor from '@monaco-editor/react';
+import ReactFlowDiagram from './ReactFlowDiagram'
 function Artifact() {
   const [collapsed, setCollapsed] = useState(false)
   const { artifacts } = useSelector(state => state.message)
@@ -18,10 +19,14 @@ function Artifact() {
   const htmlFile = artifacts[0]?.files?.find(f => f.name == "index.html")
   const cssFile = artifacts[0]?.files?.find(f => f.name == "style.css")
   const jsFile = artifacts[0]?.files?.find(f => f.name == "script.js")
+  const isDiagram = artifacts[0]?.type === "Diagram"
+  const diagramData = artifacts[0]?.files?.find(f => f.name == "diagram.json")?.content
 
-  const canPreview = Boolean(htmlFile)
+  const canPreview = Boolean(htmlFile) || isDiagram
 
-  const previewDoc = `
+  const isFullDocument = !cssFile && !jsFile && (htmlFile?.content?.trim()?.startsWith("<!DOCTYPE") || htmlFile?.content?.trim()?.startsWith("<html"))
+
+  const previewDoc = isFullDocument ? htmlFile?.content : `
   <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -72,6 +77,9 @@ function Artifact() {
     if (name.endsWith(".json"))
       return "json";
 
+    if (name.endsWith(".mmd"))
+      return "plaintext";
+
     if (name.endsWith(".py"))
       return "python";
 
@@ -88,7 +96,7 @@ function Artifact() {
 
   }
 
-  const PanelContent = ({onClose}) => {
+  const renderPanelContent = (onClose) => {
     return (
       <>
         {!collapsed ? <div className='flex flex-col h-full bg-[#0d0f14]'>
@@ -135,6 +143,7 @@ function Artifact() {
             {
               artifacts[0]?.files?.map((f, index) => (
                 <button
+                  key={f?.name || index}
                   onClick={() => setActiveFile(index)}
                   className={`px-4 py-2.5 text-[11px] font-medium whitespace-nowrap transition-colors duration-150 border-r border-white/[0.05] relative cursor-pointer bg-transparent   ${activeFile === index ? "text-indigo-400" : "text-slate-500 hover:text-slate-300"}`}
                 >
@@ -154,7 +163,9 @@ function Artifact() {
               transition={{ duration: 0.5 }}
               className='w-full h-full'
             >
-              <iframe title='preview' srcDoc={previewDoc} sandbox='allow-scripts' className='w-full h-full bg-white' />
+              {isDiagram
+                ? <ReactFlowDiagram data={diagramData} />
+                : <iframe title='preview' srcDoc={previewDoc} sandbox='allow-scripts' className='w-full h-full bg-white' />}
             </motion.div>
               :
               <motion.div
@@ -216,8 +227,7 @@ function Artifact() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} onClick={() => setMobileOpen(false)} className="lg:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
 
           <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: 0.25, ease: "easeInOut" }} className="lg:hidden fixed inset-y-0 right-0 z-50 w-[88vw] max-w-[420px] border-l border-white/[0.06] overflow-hidden">
-            <PanelContent onClose={()=>setMobileOpen(false)}/>
-          </motion.div>
+            {renderPanelContent(() => setMobileOpen(false))}          </motion.div>
 
         </>
         }
@@ -234,7 +244,7 @@ function Artifact() {
         }}
         className='hidden lg:flex h-full border-l border-white/[0.06] flex-col overflow-hidden shrink-0 '>
 
-        <PanelContent />
+        {renderPanelContent(null)}
       </motion.div>
     </>
   )

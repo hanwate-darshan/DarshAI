@@ -1,11 +1,11 @@
-import { Check, Copy, ExternalLink, FileX2, X } from 'lucide-react'
-import React from 'react'
+import { Check, Copy, ExternalLink, X } from 'lucide-react'
 import { useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
-function MessageBubble({ role, content, images }) {
+import ReactFlowDiagram from './ReactFlowDiagram'
+function MessageBubble({ role, content, images, diagram, dataHtml }) {
   const isUser = role === "user"
   const [lightBox, setLightBox] = useState(null)
   const [copiedCode, setCopiedCode] = useState("")
@@ -47,6 +47,22 @@ function MessageBubble({ role, content, images }) {
           </div>
         )}
 
+
+        {diagram && diagram.nodes?.length > 0 && (
+          <div className="mt-4 w-full rounded-2xl border border-white/10 overflow-hidden">
+            <div className="h-[420px]">
+              <ReactFlowDiagram data={diagram} />
+            </div>
+          </div>
+        )}
+
+        {dataHtml && (
+          <div className="mt-4 w-full rounded-2xl border border-white/10 overflow-hidden">
+            <div className="w-full bg-[#0d1117]">
+              <iframe title="Data Analysis" srcDoc={dataHtml} sandbox="allow-scripts" className="w-full h-[480px] border-0" />
+            </div>
+          </div>
+        )}
 
         <Markdown
           remarkPlugins={[remarkGfm]}

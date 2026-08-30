@@ -1,12 +1,15 @@
 import React from 'react'
 import { AnimatePresence, motion } from "motion/react"
 import { Crown, X } from 'lucide-react'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { createOrder } from '../features/createOrder'
 import { verifyPayment } from '../features/verifyPayment'
+import getCurrentUser from '../features/getCurrentUser'
+import { setUserdata } from '../redux/userSlice'
 function BillingDrawer({ open, onClose }) {
 
     const { userData } = useSelector(state => state.user)
+    const dispatch = useDispatch()
 
     const handleUpgrade = async (plan) => {
         try {
@@ -20,8 +23,9 @@ function BillingDrawer({ open, onClose }) {
                 order_id: data?.order?.id,
                 handler: async (response) => {
                     try {
-                        const data = await verifyPayment(response)
-                        console.log(data)
+                        await verifyPayment(response)
+                        const user = await getCurrentUser()
+                        if (user) dispatch(setUserdata(user))
                     } catch (error) {
                         console.log(error)
                     }
@@ -126,10 +130,6 @@ function BillingDrawer({ open, onClose }) {
                             <button className='mt-4 w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 py-2 text-white' onClick={() => handleUpgrade("pro")}>Upgrade</button>
                         </div>
                     </div>
-
-
-
-
 
 
 

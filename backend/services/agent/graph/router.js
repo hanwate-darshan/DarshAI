@@ -115,7 +115,13 @@ diagram:
 resume:
   Analyze resume,
   ATS score,
-  resume review
+  resume review,
+  make a resume,
+  build resume,
+  generate resume,
+  create resume,
+  resume from my details,
+  write resume
 
 translate:
   Translate text to another language,

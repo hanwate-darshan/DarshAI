@@ -18,6 +18,21 @@ const artifactSchema=new mongoose.Schema({
 })
 
 
+const diagramSchema=new mongoose.Schema({
+    nodes:[{
+        id:String,
+        label:String,
+        type: { type: String }
+    }],
+    edges:[{
+        source:String,
+        target:String,
+        label:String
+    }]
+},{
+    _id:false
+})
+
 const messageSchema=new mongoose.Schema({
     conversationId:{
         type:mongoose.Schema.Types.ObjectId,
@@ -29,7 +44,9 @@ const messageSchema=new mongoose.Schema({
     },
     content:String,
     images:[String],
-    artifacts:[artifactSchema]
+    artifacts:[artifactSchema],
+    diagram:diagramSchema,
+    dataHtml:String
 
 },{
     timestamps:true

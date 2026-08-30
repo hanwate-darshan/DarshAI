@@ -95,21 +95,30 @@ export const dataAnalyzer = async (state) => {
     try {
         await checkAgentLimit(state.userId, "data")
 
+        if (!state.file) {
+            return {
+                ...state,
+                aiResponse: "## Data Analysis\n\nPlease upload a CSV file to analyze. Select the **Data** agent and attach a `.csv` file."
+            }
+        }
+
+        const fileName = state.file.originalname || state.file.filename || "data.csv"
+
         const buffer = await fs.readFile(state.file.path)
         const text = buffer.toString("utf-8")
 
         const { headers, rows, error } = parseCsv(text)
         if (error) {
-            return { ...state, aiResponse: `## Data Analysis\n\n${error}` }
+            return { ...state, aiResponse: `## Data Analysis\n\n**File:** ${fileName}\n\n${error}` }
         }
         if (!rows.length) {
-            return { ...state, aiResponse: "## Data Analysis\n\nThe CSV has a header row but no data rows." }
+            return { ...state, aiResponse: `## Data Analysis\n\n**File:** ${fileName}\n\nThe CSV has a header row but no data rows.` }
         }
 
         const numeric = numericColumns(headers, rows)
 
-        let statsMarkdown = `## Data Analysis\n\n`
-        statsMarkdown += `- **Rows:** ${rows.length}\n`
+        let statsMarkdown = `## Data Analysis\n\n**File:** ${fileName}`
+        statsMarkdown += `\n- **Rows:** ${rows.length}\n`
         statsMarkdown += `- **Columns:** ${headers.length}\n\n`
 
         if (numeric.length) {
@@ -146,7 +155,7 @@ Keep it brief and data-driven.`)
         await deductCredits(state.userId, "data")
 
         const html = buildChartHtml({
-            title: state.file.originalname,
+            title: fileName,
             headers,
             rows,
             numeric
@@ -155,14 +164,7 @@ Keep it brief and data-driven.`)
         return {
             ...state,
             aiResponse: statsMarkdown,
-            artifacts: [
-                {
-                    id: Date.now(),
-                    type: "DataAnalysis",
-                    files: [{ name: "index.html", content: html }],
-                    title: state.file.originalname
-                }
-            ]
+            dataHtml: html
         }
     } catch (error) {
         console.log(error)
@@ -171,6 +173,6 @@ Keep it brief and data-driven.`)
             aiResponse: error?.data?.message || "failed to analyze data"
         }
     } finally {
-        try { await fs.unlink(state.file.path) } catch (e) { }
+        try { if (state.file?.path) await fs.unlink(state.file.path) } catch (e) { }
     }
 }
